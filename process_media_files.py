@@ -1,5 +1,6 @@
 import os, subprocess, logging, argparse, sys, shutil
 from logger_utils import Colors, setup_logging
+from  tqdm import tqdm
 
 logger = setup_logging(script_name='media_processor')
 
@@ -53,18 +54,23 @@ def upload_to_onedrive(source_dir, target_path, remote, rclone_path):
         logger.error(f"{Colors.BRIGHT_RED}Source directory '{source_dir}' does not exist{Colors.RESET}")
         return False
     
-    logger.info(f"{Colors.BRIGHT_GREEN}Starting upload of files in directory {source_dir} to OneDrive{Colors.RESET}")
     try:
+        file_cmd = f'dir /s /b /a-d "{source_dir}" | find /c /v ""'
+        file_output = subprocess.check_output(file_cmd, shell=True, text=True)
+        file_count = int(file_output.strip())
+        logger.info(f"{Colors.BRIGHT_GREEN}Starting upload of {file_count} files in directory {source_dir} to OneDrive{Colors.RESET}")
+
+        pbar = tqdm(total=file_count, desc="Uploading files", unit="file", dynamic_ncols=True)
         # Build the rclone command with progress option
         cmd = [
             rclone_path, 
             "copy", 
-            "--progress",
+            "-v",
             "--transfers", "4",  # Number of file transfers to run in parallel
             source_dir,  
             f"{remote}:{target_path}"  # Destination
         ]
-        
+
         logger.debug(f"Running command: {' '.join(cmd)}")
         
         # Run the command and stream output in real-time
@@ -82,21 +88,25 @@ def upload_to_onedrive(source_dir, target_path, remote, rclone_path):
             if line:
                 if "ERROR" in line:
                     logger.error(line)
-                elif "transferred:" in line or "Transferred:" in line:
-                    # Highlight progress info
+                elif "copied:" in line or "Copied:" in line:
+                    pbar.update(1)
                     logger.info(f"{Colors.BRIGHT_BLUE}{line}{Colors.RESET}")
+                elif "There was nothing to transfer" in line:
+                    pbar.update(file_count - pbar.n)  # Complete the progress bar if no files to transfer
                 else:
                     logger.debug(line)
         
         process.wait()
-        
+            
+    except Exception as e:
+        logger.error(f"{Colors.BRIGHT_RED}Error during upload: {str(e)}{Colors.RESET}")
+
+    finally:
+        pbar.close()
         if process.returncode == 0:
             logger.info(f"{Colors.BRIGHT_GREEN}Upload completed successfully{Colors.RESET}")
         else:
             logger.error(f"{Colors.BRIGHT_RED}Upload failed with return code {process.returncode}{Colors.RESET}")
-            
-    except Exception as e:
-        logger.error(f"{Colors.BRIGHT_RED}Error during upload: {str(e)}{Colors.RESET}")
 
 
 def process_files(source_dir, destination, **kwargs):
@@ -116,7 +126,6 @@ def process_files(source_dir, destination, **kwargs):
         List of found files, or success status if target_folder is provided
 
     """
-    # source_dir = os.path.join(source_dir, 'Takeout', 'Google Photos') 
     logger.debug(f"Processing files in {source_dir}")
     
     if not os.path.isdir(source_dir):

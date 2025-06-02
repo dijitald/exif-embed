@@ -1,15 +1,9 @@
-import os, zipfile, json, subprocess, re, datetime
+import argparse
+import sys
+import os, json, subprocess, re, datetime
 from logger_utils import Colors, setup_logging
 
-logger = setup_logging(script_name='exif-embed')
-
-def unzip_files(zip_folder, extract_to):
-    for item in os.listdir(zip_folder):
-        if item.endswith('.zip'):
-            file_path = os.path.join(zip_folder, item)
-            with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                zip_ref.extractall(extract_to)
-            logger.info(f"Extracted: {file_path}")
+logger = setup_logging(script_name='exif-embed-embed')
 
 def find_json_file(media_file, json_files):
     for json_file in json_files:
@@ -71,7 +65,7 @@ def format_date_for_exiftool(photo_taken_data):
             except ValueError as e:
                 logger.debug(f"Failed to parse Google Photos date format: {cleaned_date_str} - {e}")
         
-    return datetime.datetime.now().strftime('%Y:%m:%d %H:%M:%S')
+    return None #datetime.datetime.now().strftime('%Y:%m:%d %H:%M:%S')
 
 def extract_people_tags(metadata):
     """
@@ -208,22 +202,29 @@ def cleanup_files(source_folder):
                 logger.debug(f"Removed extraneous file: {file}")
 
 
-if __name__ == "__main__":
-    
-    zip_folder = '.\\zips'
-    extract_to = '.\\extracts'
+def main ():
+    # Set up command-line argument parsing
+    parser = argparse.ArgumentParser(description='Embed metadata into media files using ExifTool')
+    parser.add_argument('--target', '-t', 
+                       default='./extracts', 
+                       help='Target folder for embedding metadata (default: ./extracts)')
+
+    args = parser.parse_args()
+    target_dir = args.target
 
     try:
-        logger.info(f"Unziping files in in {Colors.CYAN}{zip_folder}{Colors.RESET}")
-        unzip_files(zip_folder, extract_to)
-        logger.info(f"Unzipped files to {Colors.CYAN}{extract_to}{Colors.RESET}")
-        
-        input(f"{Colors.YELLOW}Press Enter to continue after verifying and cleaning up the extracted files...{Colors.RESET}")
-
-        logger.info(f"Starting metadata re-embedding process in {Colors.CYAN}{extract_to}{Colors.RESET}")
-        re_embed_metadata(extract_to)
-        cleanup_files(extract_to)
+        logger.info(f"Starting metadata re-embedding process in {Colors.CYAN}{target_dir}{Colors.RESET}")
+        re_embed_metadata(target_dir)
+        cleanup_files(target_dir)
         logger.info(f"{Colors.GREEN}Metadata re-embedding process completed successfully{Colors.RESET}")
-
     except Exception as e:
         logger.error(f"Process failed: {str(e)}")
+
+
+if __name__ == "__main__":    
+    # Enable Windows color support
+    if os.name == 'nt':
+        os.system('color')
+        
+    # Run the main program
+    sys.exit(main())

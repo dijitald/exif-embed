@@ -79,7 +79,7 @@ def setup_logging(script_name='script'):
     log_file = os.path.join(log_directory, f'{script_name}_{timestamp}.log')
        
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     
     # Clear any existing handlers
     for handler in logger.handlers[:]:
