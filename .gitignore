@@ -11,3 +11,6 @@ exiftool.exe
 rclone.exe
 /rclone-v1.69.3-windows-amd64
 /rclone-v1.69.3-windows-amd64/**
+
+/livefiles/
+/livefiles/**

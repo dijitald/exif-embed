@@ -108,7 +108,6 @@ def upload_to_onedrive(source_dir, target_path, remote, rclone_path):
         else:
             logger.error(f"{Colors.BRIGHT_RED}Upload failed with return code {process.returncode}{Colors.RESET}")
 
-
 def process_files(source_dir, destination, **kwargs):
     """
     Copy / Move all files and directories to the target location.

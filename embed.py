@@ -2,6 +2,9 @@ import argparse
 import sys
 import os, json, subprocess, re, datetime
 from logger_utils import Colors, setup_logging
+import win32file
+import win32con
+import pywintypes
 
 logger = setup_logging(script_name='exif-embed-embed')
 
@@ -78,7 +81,37 @@ def extract_people_tags(metadata):
                 people_tags.append(person['name'])
     return people_tags
 
-def re_embed_metadata(root_folder):
+def set_file_date(subdir, media_file, image_date):
+    try:
+        #remove any timezone or extra characters from the date string
+        image_date = image_date.split('-')[0].split('+')[0].strip()
+
+        file_date = os.path.getctime(os.path.join(subdir, media_file))
+        file_date = datetime.datetime.fromtimestamp(file_date).strftime('%Y:%m:%d %H:%M:%S')
+        if image_date.split()[0].strip() != file_date.split()[0].strip():
+            try :
+                image_date = datetime.datetime.strptime(image_date, '%Y:%m:%d %H:%M:%S')
+            except ValueError:
+                logger.error(f"Invalid date format for {media_file}: {image_date}")
+                return
+            
+            win_time = pywintypes.Time(image_date)
+            handle = win32file.CreateFile
+            (
+                os.path.join(subdir, media_file),
+                win32con.GENERIC_WRITE,
+                win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE | win32con.FILE_SHARE_DELETE,
+                None,
+                win32con.OPEN_EXISTING,
+                win32con.FILE_ATTRIBUTE_NORMAL,
+                None
+            )
+            win32file.SetFileTime(handle, win_time, None, None)
+            handle.close()
+    except Exception as e:
+        logger.error(f"Failed to set file date for {media_file}: {e}")
+
+def embed_metadata(root_folder):
     for subdir, _, files in os.walk(root_folder):
         media_files = [f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.png', '.mp4', '.mov', '.heic'))]
         json_files = [f for f in files if f.lower().endswith('.json')]
@@ -92,10 +125,10 @@ def re_embed_metadata(root_folder):
                 if json_file:
                     with open(os.path.join(subdir, json_file), 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
-                      
+
                     title = metadata.get('title', '')
                     description = metadata.get('description', '')
-                    date_taken = format_date_for_exiftool(metadata.get('photoTakenTime', {}))
+                    image_date = format_date_for_exiftool(metadata.get('photoTakenTime', {}))
                     location = metadata.get('geoData', {})
                     latitude = location.get('latitude')
                     longitude = location.get('longitude')
@@ -127,12 +160,13 @@ def re_embed_metadata(root_folder):
                     ]
                     
                     # Handle date fields
-                    if date_taken:
+                    if image_date:
                         exiftool_cmd.extend([
-                            f'-DateTimeOriginal={date_taken}',
-                            f'-CreateDate={date_taken}', 
-                            f'-ModifyDate={date_taken}'
-                        ])
+                            f'-DateTimeOriginal={image_date}',
+                            f'-CreateDate={image_date}', 
+                            f'-ModifyDate={image_date}'
+                        ])                        
+                        set_file_date(subdir, media_file, image_date)
                     
                     # Handle GPS data
                     if latitude and longitude:
@@ -214,7 +248,7 @@ def main ():
 
     try:
         logger.info(f"Starting metadata re-embedding process in {Colors.CYAN}{target_dir}{Colors.RESET}")
-        re_embed_metadata(target_dir)
+        embed_metadata(target_dir)
         cleanup_files(target_dir)
         logger.info(f"{Colors.GREEN}Metadata re-embedding process completed successfully{Colors.RESET}")
     except Exception as e:
