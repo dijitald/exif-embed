@@ -3,7 +3,7 @@ import os
 import sys
 from logger_utils import Colors, setup_logging
 
-logger = setup_logging(script_name='exif-embed-embed')
+logger = setup_logging(script_name='exif-embed-scrub-live-files')
 
 def scrub():
     parser = argparse.ArgumentParser(description="Cleanup MP4 live photo files")

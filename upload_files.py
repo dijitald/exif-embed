@@ -2,7 +2,7 @@ import os, subprocess, logging, argparse, sys, shutil
 from logger_utils import Colors, setup_logging
 from  tqdm import tqdm
 
-logger = setup_logging(script_name='media_processor')
+logger = setup_logging(script_name='exif-embed-upload-files')
 
 def check_rclone():
     """Check if rclone is available and properly configured"""
