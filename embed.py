@@ -90,7 +90,10 @@ def set_file_date(subdir, media_file, image_date):
         file_date = datetime.datetime.fromtimestamp(file_date).strftime('%Y:%m:%d %H:%M:%S')
         if image_date.split()[0].strip() != file_date.split()[0].strip():
             try :
-                image_date = datetime.datetime.strptime(image_date, '%Y:%m:%d %H:%M:%S')
+                try:
+                    image_date = datetime.datetime.strptime(image_date, '%Y:%m:%d %H:%M:%S.%f')
+                except ValueError:
+                    image_date = datetime.datetime(year=1973, month=12, day=21, hour=0, minute=0, second=0)
             except ValueError:
                 logger.error(f"Invalid date format for {media_file}: {image_date}")
                 return

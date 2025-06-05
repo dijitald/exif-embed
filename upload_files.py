@@ -220,9 +220,7 @@ def main():
                         help="Target folder on OneDrive or in Pictures Library (leave empty for root folder)")
     parser.add_argument("--operation", "-o", choices=["move", "copy"], default='copy',
                         help="Choose whether to 'move' or 'copy' files when using Pictures destination (OneDrive is always copy)")
-    parser.add_argument("--verbose", "-v", action="store_true",
-                        help="Enable verbose output")
-    
+
     args = parser.parse_args()
     source_dir = os.path.abspath(args.source)
     destination = args.destination.lower() if args.destination else None
@@ -231,13 +229,7 @@ def main():
     operation = args.operation # (move or copy)
     rclone_path = None  # Will be set if rclone is available
     
-    # Set log level based on verbose flag
-    if args.verbose:
-        for handler in logging.getLogger().handlers:
-            if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
-                handler.setLevel(logging.DEBUG)
-
-    logger.info(f"{Colors.BOLD}{Colors.BRIGHT_CYAN}File Processor{Colors.RESET}")
+    logger.info(f"{Colors.BOLD}{Colors.BRIGHT_CYAN}Upload Files{Colors.RESET}")
     
     # Check if source directory exists
     if not os.path.isdir(source_dir):
