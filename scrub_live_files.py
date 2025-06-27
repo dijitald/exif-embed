@@ -17,10 +17,18 @@ def scrub():
         for file in files:
             if file.lower().endswith('.mp4'):
                 print (f"Processing file: {file}")
+                file_path = None
                 heic_path = f"{os.path.splitext(file)[0]}.heic"
+                jpg_path = f"{os.path.splitext(file)[0]}.jpg"
+                jpeg_path = f"{os.path.splitext(file)[0]}.jpeg"
+                if os.path.exists(os.path.join(root, jpg_path)):
+                    file_path = jpg_path
+                elif os.path.exists(os.path.join(root, heic_path)):
+                    file_path = heic_path
+                elif os.path.exists(os.path.join(root, jpeg_path)):
+                    file_path = jpeg_path
 
-                #if the file exists, move the mp4 file
-                if os.path.exists(os.path.join(root, heic_path)):
+                if file_path:
                     source_file = os.path.join(root, file)
                     dest_file = os.path.join(target_dir, os.path.relpath(source_file, start=source_dir))
                     os.makedirs(os.path.dirname(dest_file), exist_ok=True)
