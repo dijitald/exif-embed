@@ -26,29 +26,41 @@ def update_creation_date():
         logger.info(f"Processing directory: {Colors.CYAN}{subdir}{Colors.RESET}")        
         for file in files:
             try:
-                if file.lower().endswith('.mp4'):
+                if file.lower().endswith('.wmv'):
                     continue
 
                 image_date = None
                 file_date = os.path.getctime(os.path.join(subdir, file))
                 file_date = datetime.datetime.fromtimestamp(file_date).strftime('%Y:%m:%d %H:%M:%S')
-                exiftool_cmd = [
-                    'exiftool',
-                    '-s',  # Short output
-                    '-DateTimeOriginal',  # Get the original date taken
-                    os.path.join(subdir, file)
-                ]
+                if file.lower().endswith('.mp4'):
+                    exiftool_cmd = [
+                        'exiftool',
+                        '-s',  # Short output
+                        '-Quicktime:CreateDate',  # Get the original date taken
+                        os.path.join(subdir, file)
+                    ]
+                else:
+                    exiftool_cmd = [
+                        'exiftool',
+                        '-s',  # Short output
+                        '-DateTimeOriginal',  # Get the original date taken
+                        os.path.join(subdir, file)
+                    ]
+ 
                 result = subprocess.run(exiftool_cmd, capture_output=True, text=True)
                 if result.returncode == 0:
+                    logger.debug(f"ExifTool output for {file}: {result.stdout.strip()}")
                     parts = result.stdout.strip().split(': ')
-                    if len(parts) > 1 and parts[0].strip() == 'DateTimeOriginal':
+                    if len(parts) > 1 and (parts[0].strip() == 'DateTimeOriginal' or parts[0].strip() == 'CreateDate'):
                         image_date = parts[1].strip()
                     if image_date:
                         image_date = image_date.split('-')[0].split('+')[0].strip()
 
-                if image_date and image_date.split()[0].strip() != file_date.split()[0].strip():
+                if image_date : # and image_date.split()[0].strip() != file_date.split()[0].strip():
                     try :
                         try:
+                            logger.debug(f"Raw image date for {file}: {image_date}")
+
                             image_date = datetime.datetime.strptime(image_date, '%Y:%m:%d %H:%M:%S')
                             image_date = image_date.replace(year=1971) if image_date.year < 1971 else image_date 
                             logger.debug(f"Parsed image date for {file}: {image_date}")
